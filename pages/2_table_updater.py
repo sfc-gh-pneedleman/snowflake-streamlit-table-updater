@@ -52,17 +52,32 @@ if table_name:
         for key in json_raw:
             value = json_raw[key]
             #st.write("The key and value are ({}) = ({})".format(key, value))
+
+            #handle edit 
+            if key == "edited_cells":
+                temp_df_1 = pd.DataFrame.from_dict(json_raw['edited_cells'], orient='index', columns=['VAL'])
+                #temp_df_1 = temp_df_1.reset_index()
+                #temp_df_1['index_col'] = temp_df_1.index
+                temp_df_1.reset_index(inplace=True)
+                temp_df_1= temp_df_1.rename(columns={"index": "KEY"})
+                temp_df_1[['COL','ROW']] = temp_df_1.KEY.str.split(":",expand=True)
+                #temp_df_2 = pd.DataFrame.from_dict(json_raw['added_rows'])
+                st.write(temp_df_1)
+                #st.write(temp_df_2)
+
+
+            # #handle delete logic 
             if key == "deleted_rows":
                 temp_df = pd.DataFrame.from_dict(json_raw['deleted_rows'])
                 temp_df.columns = ['VAL']
                 #st.write(df_new)
                 delete_df = pd.merge(temp_df, df, left_on='VAL', right_index=True)
-                #st.write(delete_df)
-
+               #st.write(delete_df)
                 col_list = str(tuple(delete_df['ID'].astype(str).tolist()))
                 delete_stmt = "DELETE FROM " + table_name + " WHERE ID IN " + col_list
-                cs.execute(delete_stmt)
-                st.success('Data Deleted - Rows: ' + col_list)
+                st.write(delete_stmt)
+                #cs.execute(delete_stmt)
+                #st.success('Data Deleted - Rows: ' + col_list)
 
                 
 
