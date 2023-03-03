@@ -68,14 +68,21 @@ if table_name:
 
   
         if submit: 
-            
+
+            def remove_comma_from_list(input_list):
+                if int(len(input_list)) == 1:
+                    output_list = str(input_list).replace(',', '')
+                else:
+                    output_list = str(input_list)
+                        
+                return output_list    
             
             for key in json_raw:
                 value = json_raw[key]
                 #st.write("The key and value are ({}) = ({})".format(key, value))
 
                 #handle edit 
-                # if key == "edited_cells" and  and len(json_raw['edited_cl']) > 0:
+                # if key == "edited_cells" and  len(json_raw['edited_cells']) > 0:
                 #     temp_df_1 = pd.DataFrame.from_dict(json_raw['edited_cells'], orient='index', columns=['VAL'])
                 #      #temp_df_1 = temp_df_1.reset_index()
                 #      #temp_df_1['index_col'] = temp_df_1.index
@@ -84,15 +91,6 @@ if table_name:
                 #     temp_df_1[['COL','ROW']] = temp_df_1.KEY.str.split(":",expand=True)
                 #      #temp_df_2 = pd.DataFrame.from_dict(json_raw['added_rows'])
                 #     st.write(temp_df_1)
-                #      #st.write(temp_df_2)
-
-                def remove_comma_from_list(input_list):
-                    if int(len(input_list)) == 1:
-                        output_list = str(input_list).replace(',', '')
-                    else:
-                        output_list = str(input_list)
-                        
-                    return output_list
 
 
                 if key == "added_rows" and len(json_raw['added_rows']) > 0 :
