@@ -201,7 +201,7 @@ if table_name:
             #merged_df = pd.concat([operation_list], ignore_index=True )
             
             ######## DEBUGGING   ###########
-            # st.write('merged dataframe:')
+            #st.write('merged dataframe:')
             # st.write(merged_df)
             ####### END DEBUGGING #####$#
 
@@ -237,8 +237,4 @@ if table_name:
 
                 st.success ('Edited data successfully written back to Snowflake!') 
 
-                #delete the session state for the data editor 
-                #for key in st.session_state.keys():
-                #    del st.session_state[key]
-                   
 
