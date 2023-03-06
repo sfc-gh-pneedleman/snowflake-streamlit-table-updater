@@ -1,14 +1,7 @@
 
 ##import python libraries  
-from dataclasses import replace
 import snowflake.connector
-from snowflake.connector.cursor import ResultMetadata
 import streamlit as st
-import sys
-from datetime import datetime
-import base64
-import urllib.request
-import pandas as pd
 import string
 
 #from pandasgui import show
