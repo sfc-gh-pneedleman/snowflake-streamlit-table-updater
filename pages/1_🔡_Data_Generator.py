@@ -4,24 +4,12 @@ import snowflake.connector
 import streamlit as st
 import string
 
-#from pandasgui import show
-#from pandasgui.datasets import titanic
-#gui = show(titanic)
 
 st.set_page_config(page_title="Data Generator", page_icon="🔡", layout="wide") 
 
 
 st.header('Let\'s create a sample table with a primary key 🔡')
 
-##using caching to speed up the refresh of going back to get the list of values for each selection. There could be an issue with Presigned URLs timing out. 
-#If you see 401 errors disable the cache
-
-#st.write(string.sf_database)
-#st.write(string.sf_schema)
-#st.write(string.sf_role)
-
-
-#@st.cache(persist=False)
 def get_data():
 
     ##snowflake connection info. Its not good practice to include passwords in your code. This is here for demo purposes
