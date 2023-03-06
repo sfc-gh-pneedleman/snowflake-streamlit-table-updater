@@ -7,7 +7,7 @@ import json
 st.set_page_config(page_title="Table Editor", page_icon="📋", layout="wide")
 
 ##add some markdown to the page with a desc 
-st.header("Lets get editing 📋")
+st.header("Let\'s get editing 📋")
 
 ##snowflake connection info. This will get read in from the values submitted on the homepage
 ctx = snowflake.connector.connect(
