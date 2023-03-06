@@ -45,11 +45,14 @@ def get_data():
     #open a snowflake cursor
     cs = ctx.cursor()
 
+    #formatting to contain the text box to only one column, so it doesnt span the entire width
     col1, col2 = st.columns(2)
 
+    #formatting to contain the text box to only one column, so it doesnt span the entire width
     with col1:
         st.subheader("What would you like to name your table?")
         table_nanme = st.text_input('Table Name')
+
         if table_nanme:
             st.subheader("You entered: ", table_nanme)
     

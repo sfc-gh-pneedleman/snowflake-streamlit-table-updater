@@ -30,9 +30,14 @@ table_list_sql = "SELECT TABLE_NAME FROM INFORMATION_SCHEMA.TABLES \
 cs.execute(table_list_sql)
 table_list_df = cs.fetch_pandas_all()
 
+##formatting to contain the select box to only one column, so it doesnt span the entire width
+col1, col2 = st.columns(2)
+with col1:
+    st.subheader("What would you like to name your table?")
 #display the select box with values from table dataframe
-st.write("Select the table you'd like to edit")
-table_name = st.selectbox('Table Name',table_list_df)
+    st.write("Select the table you'd like to edit")
+    table_name = st.selectbox('Table Name',table_list_df)
+
 if table_name:
     st.write("You selected: " +  table_name)
 
@@ -45,7 +50,9 @@ if table_name:
     results = cs.fetchall()
     #error handling logic to check if 1 and only 1 PK exists. If only 1 we stop 
     if len(results) != 1 :
-        st.error('Only tables with 1 PK column are supported: Your Table has less than 1 or more than 1 PK column')
+        #formatting to contain the error to only one column, so it doesnt span the entire width
+        with col1:
+            st.error('Only tables with 1 PK column are supported: Your Table has less than 1 or more than 1 PK column')
     #otherwise we continue to process the table with a single PK
     else: 
         #get the PK name and store into a variable for later use    
