@@ -105,7 +105,7 @@ if table_name:
         # END DEBUGGING #############
 
         #create an empty dataframe to merge edits, inserts and delete DFs info 
-        merged_df = pd.DataFrame
+        merged_df = pd.DataFrame()
 
         #when submit butten is clicked, we can begin processing the JSON state and create 3 dataframes for edits, inderts and delets. This will get dumpted to JSON
         if submit: 
@@ -145,7 +145,7 @@ if table_name:
                     edit_df['DEL'] = 'N'
                     
                     #append the edit DF to a single merged dataframe to use at end 
-                    merged_df = pd.concat([edit_df], ignore_index=True )
+                    merged_df = merged_df.append(edit_df)
         
                     #### DEBUGGING ######
                     # st.write('edit dataframe:')
@@ -175,7 +175,7 @@ if table_name:
                     ##### END DEBUGGING          
                     
                     # append the insert DF to a single merged dataframe to use at end             
-                    merged_df = pd.concat([add_df_all], ignore_index=True )
+                    merged_df = merged_df.append(add_df_all)
 
                 ############## DELETES ###################   
                 # #handle delete logic and check if there are values in the deleted rows key
@@ -195,14 +195,14 @@ if table_name:
                     ##### END DEBUGGING ##################
         
                     # add the delete DF into the merged DF
-                    merged_df = pd.concat([delete_df], ignore_index=True )
+                    merged_df = merged_df.append(delete_df)
                     
             #now we have all the DFs so we can progess them to JSON and Snowflake
             #merged_df = pd.concat([operation_list], ignore_index=True )
             
             ######## DEBUGGING   ###########
-            st.write('merged dataframe:')
-            st.write(merged_df)
+            # st.write('merged dataframe:')
+            # st.write(merged_df)
             ####### END DEBUGGING #####$#
 
             #error handling to make sure some data was changed before trying to process

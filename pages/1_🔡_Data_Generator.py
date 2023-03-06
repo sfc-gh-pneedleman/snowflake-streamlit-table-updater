@@ -48,7 +48,7 @@ def get_data():
     col1, col2 = st.columns(2)
 
     with col1:
-        st.subheader("What would you like to name your table")
+        st.subheader("What would you like to name your table?")
         table_nanme = st.text_input('Table Name')
         if table_nanme:
             st.subheader("You entered: ", table_nanme)
@@ -71,11 +71,12 @@ def get_data():
 
             cs.execute(create_tbl_stmt)
 
-            alter_pk_stmt = "ALTER TABLE STREAMLIT_UPDATER ADD PRIMARY KEY (ID)"
+            alter_pk_stmt = "ALTER TABLE "+  table_nanme + "  ADD PRIMARY KEY (ID)"
             cs.execute(alter_pk_stmt)
 
 
-            st.success("Table  : " + table_nanme +  " successfully created in " + string.sf_database + "." + string.sf_schema )
+            st.success("Table  " + table_nanme +  " successfully created in " + string.sf_database + "." + string.sf_schema + 
+                        ". Please navigate to [Table Updater](http://localhost:8501/Table_Updater) to edit your table" )
 
             select_stmt = "SELECT * FROM  " +  table_nanme    
 
