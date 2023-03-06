@@ -219,7 +219,7 @@ if table_name:
                 ##create a view to wrap around the JSON data with the same column names as our source table.
                 # note: this is a temporary view and is destroyed after the session. if you'd like to view thw 
                 #       View DDL you can remove the temporary keyword 
-                SRC_VIEW_SQL = "CREATE OR REPLACE  VIEW STREAMLIT_MERGE_VW AS (            \
+                SRC_VIEW_SQL = "CREATE OR REPLACE TEMPORARY VIEW STREAMLIT_MERGE_VW AS (            \
                     SELECT " +   COL_SELECT_FOR_JSON + " FROM                                       \
                     ( SELECT PARSE_JSON(' " + json_data + "') as JSON_DATA),                        \
                     LATERAL FLATTEN (input => JSON_DATA));"               
