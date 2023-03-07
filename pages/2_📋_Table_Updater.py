@@ -65,15 +65,15 @@ if table_name:
         #export results to DF 
         df = cs.fetch_pandas_all()
 
-        #makee use of the new data frame editor as of 1.19 to allow edits to DF objects. 
+        # make use of the new data frame editor as of 1.19 to allow edits to DF objects. 
         # num rows dynamic allows for INSERTS. if you would not like inserts remove this option
         # edited rsults get stored in the session_state of data_editor json object
         edited_df = st.experimental_data_editor(df, key="data_editor", use_container_width=True, num_rows="dynamic")
         
         ######## DEBUGGING ###########
         #  remove the next two lines to see output of changed DF ###### 
-        st.write("Here's the session state:")
-        st.write(st.session_state["data_editor"])
+        # st.write("Here's the session state:")
+        # st.write(st.session_state["data_editor"])
         ###### END DEBUGGING ######
 
         #save the session state into a variable
@@ -143,9 +143,9 @@ if table_name:
                     edit_df= edit_df.rename(columns={"index": "ROW"})
                     #convert row column to int, needed for merge operation
                     edit_df['ROW']=edit_df['ROW'].astype(int)
-                    cols_to_merge= df.columns.difference(edit_df.columns)
+                    cols_to_merge= edited_df.columns.difference(edit_df.columns)
                     #merge/join with orginal dataframe to get the column values that were changes 
-                    edit_df = pd.merge(edit_df, df[cols_to_merge], left_on='ROW', right_index=True)
+                    edit_df = pd.merge(edit_df, edited_df[cols_to_merge], left_on='ROW', right_index=True)
                     #remove the unneeded colunm
                     edit_df.drop(columns=['ROW'], inplace=True)
                     #add a column denoting this is not a delete operation 
@@ -191,7 +191,7 @@ if table_name:
                     del_df = pd.DataFrame.from_dict(json_raw['deleted_rows'])
                     del_df.columns = ['VAL']
                     #st.write(df_new)
-                    delete_df = pd.merge(del_df, df, left_on='VAL', right_index=True)
+                    delete_df = pd.merge(del_df, edited_df, left_on='VAL', right_index=True)
             
                     delete_df.drop(columns=['VAL'], inplace=True)
                     delete_df['DEL'] = 'Y'
@@ -242,6 +242,8 @@ if table_name:
                 
                 cs.execute(MERGE_SQL)
 
-                st.success ('Edited data successfully written back to Snowflake!') 
+                st.success ('Edited data successfully written back to Snowflake! The page will now refresh.') 
+                st.experimental_rerun()
+                
 
 
