@@ -143,9 +143,9 @@ if table_name:
                     edit_df= edit_df.rename(columns={"index": "ROW"})
                     #convert row column to int, needed for merge operation
                     edit_df['ROW']=edit_df['ROW'].astype(int)
-                    cols_to_merge= edited_df.columns.difference(edit_df.columns)
+                    cols_to_merge= df.columns.difference(edit_df.columns)
                     #merge/join with orginal dataframe to get the column values that were changes 
-                    edit_df = pd.merge(edit_df, edited_df[cols_to_merge], left_on='ROW', right_index=True)
+                    edit_df = pd.merge(edit_df, df[cols_to_merge], left_on='ROW', right_index=True)
                     #remove the unneeded colunm
                     edit_df.drop(columns=['ROW'], inplace=True)
                     #add a column denoting this is not a delete operation 
@@ -191,7 +191,7 @@ if table_name:
                     del_df = pd.DataFrame.from_dict(json_raw['deleted_rows'])
                     del_df.columns = ['VAL']
                     #st.write(df_new)
-                    delete_df = pd.merge(del_df, edited_df, left_on='VAL', right_index=True)
+                    delete_df = pd.merge(del_df, df, left_on='VAL', right_index=True)
             
                     delete_df.drop(columns=['VAL'], inplace=True)
                     delete_df['DEL'] = 'Y'
@@ -243,7 +243,7 @@ if table_name:
                 cs.execute(MERGE_SQL)
 
                 st.success ('Edited data successfully written back to Snowflake! The page will now refresh.') 
-                st.experimental_rerun()
                 
-
-
+                # uncommet if you'd like to return the page after processing 
+                # st.experimental_rerun()
+                
