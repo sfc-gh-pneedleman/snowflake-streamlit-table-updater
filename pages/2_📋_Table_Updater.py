@@ -68,7 +68,7 @@ def get_primary_keys (table_name):
 @st.cache_data
 def get_table_to_edit(table_name,PK_COL):
     try:
-        select_stmt = "SELECTz * FROM  " +  table_name + " ORDER BY " + PK_COL
+        select_stmt = "SELECT * FROM  " +  table_name + " ORDER BY " + PK_COL
         cs.execute(select_stmt)
         return cs.fetch_pandas_all()
     except Exception as e:
