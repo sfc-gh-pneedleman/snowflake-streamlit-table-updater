@@ -6,43 +6,98 @@ import json
 
 st.set_page_config(page_title="Table Editor", page_icon="📋", layout="wide")
 
+@st.cache_resource
+def init_connection():
+    try:
+        return snowflake.connector.connect(
+        user=string.sf_user,
+        password=string.sf_password, 
+        account=string.sf_account,
+        warehouse=string.sf_warehouse,
+        database=string.sf_database,
+        schema=string.sf_schema,
+        role=string.sf_role)
+    except Exception as e:
+        st.sidebar.error("Connection Failed. Please try again! The pages will not work unless a succesfull connection is made" + '\n' + '\n' + "error: " + str(e))
+
+@st.cache_data
+def get_table_list(database,schema):
+    try:
+        table_list_sql = "show primary keys in schema " + database + "." + schema
+        cs.execute(table_list_sql)
+        table_list_sql = 'SELECT "table_name" FROM table(RESULT_SCAN(LAST_QUERY_ID(-1))) group by "table_name" having sum(1) = 1 '
+        cs.execute(table_list_sql)
+        return cs.fetch_pandas_all()
+    except Exception as e:
+        st.sidebar.error("Sorry, An error occcured in get_table_list(): " + str(e))
+
+
+@st.cache_data
+def get_col_list_sql(tablel_name):
+    try:
+        col_list_sql = "SELECT LISTAGG('VALUE:' || COLUMN_NAME ||'::'||DATA_TYPE || ' AS ' || COLUMN_NAME , ',' )               \
+                WITHIN GROUP ( ORDER BY  ORDINAL_POSITION) || ', VALUE:DEL::VARCHAR AS DEL'  COL_SELECT_FOR_JSON,                   \
+                LISTAGG( CASE WHEN COLUMN_NAME = '" + PK_COL + "' THEN NULL ELSE  ' tgt.' || COLUMN_NAME || ' =  src.' || COLUMN_NAME END , ', ') \
+            WITHIN GROUP ( ORDER BY  ORDINAL_POSITION)                                                                              \
+            COL_LIST_FOR_MERGE_UPDATE,                                                                                              \
+                '(' || LISTAGG(  COLUMN_NAME, ',')   WITHIN GROUP ( ORDER BY  ORDINAL_POSITION) || ')                               \
+                    ' ||'VALUES (' ||  LISTAGG(  'src.' || COLUMN_NAME, ', ') WITHIN GROUP ( ORDER BY  ORDINAL_POSITION) || ')'     \
+            COL_LIST_FOR_MERGE_INSERT                                                                                               \
+            FROM INFORMATION_SCHEMA.COLUMNS                                                                                         \
+            WHERE TABLE_NAME = '" + table_name + "';"
+
+            #get one row row back with the 3 column lists 
+            ##store each column list into its own  variable to be used later 
+        return cs.execute(col_list_sql).fetchone()
+    except Exception as e:
+        st.sidebar.error("Sorry, An error occcured in  get_col_list_sql(): " + str(e))
+
+@st.cache_data
+def get_primary_keys (table_name):
+    try:
+        # for merging into a table we need to know which Column to merge on. We need to
+        # check if a PK key exists and get its name    
+        get_PK_sql = "show primary keys in " + table_name
+        cs.execute(get_PK_sql)
+        #because this is a show command we need to get the QueryID from the show command and execute again
+        cs.get_results_from_sfqid(cs.sfqid)
+        return cs.fetchall()
+    except Exception as e:
+        st.sidebar.error("Sorry, An error occcured in get_primary_keys(): " + str(e))
+
+@st.cache_data
+def get_table_to_edit(table_name,PK_COL):
+    try:
+        select_stmt = "SELECTz * FROM  " +  table_name + " ORDER BY " + PK_COL
+        cs.execute(select_stmt)
+        return cs.fetch_pandas_all()
+    except Exception as e:
+        st.sidebar.error("Sorry, An error occcured in get_table_to_edit(): " + str(e))
+
+
 ##add some markdown to the page with a desc 
 st.header("Let\'s get editing 📋")
 
 ##snowflake connection info. This will get read in from the values submitted on the homepage
-ctx = snowflake.connector.connect(
-    user=string.sf_user,
-    password=string.sf_password, 
-    account=string.sf_account,
-    warehouse=string.sf_warehouse,
-    database=string.sf_database,
-    schema=string.sf_schema,
-    role=string.sf_role
-)
 
-#open the connection
-cs = ctx.cursor()
 
-#get a list of tables within the schema. we will use to populate within a selectbox
-table_list_sql = "SELECT TABLE_NAME FROM INFORMATION_SCHEMA.TABLES \
-                    WHERE TABLE_SCHEMA = '" + string.sf_schema + "' AND TABLE_TYPE = 'BASE TABLE' ORDER BY 1"
-#execute sql and get tablelist into a dataframe
-cs.execute(table_list_sql)
-table_list_df = cs.fetch_pandas_all()
+try:
+    ctx = init_connection()
+    #open the connection
+    cs = ctx.cursor()
 
+except Exception as e:
+        st.sidebar.error("Connection Failed. sf_user = " + string.sf_user + " Please try again! The pages will not work unless a sucessfull connection is made" + '\n' + '\n' + "error: " + str(e))
+
+table_list_df = get_table_list(string.sf_database, string.sf_schema)
+
+#TODO: parameters for table_updater(db,schema,table,sql_query,primary_key)
 #display the select box with values from table dataframe
-st.write("Select the table you'd like to edit")
+st.write("Select the table you'd like to edit. Only valid tables with ONE primary key defined are shown.")
 table_name = st.selectbox('Table Name',table_list_df)
 if table_name:
     st.write("You selected: " +  table_name)
-
-    # for merging into a table we need to know which Column to merge on. We need to
-    # check if a PK key exists and get its name    
-    get_PK_sql = "show primary keys in " + table_name
-    cs.execute(get_PK_sql)
-    #because this is a show command we need to get the QueryID from the show command and execute again
-    cs.get_results_from_sfqid(cs.sfqid)
-    results = cs.fetchall()
+    results = get_primary_keys(table_name)
     #error handling logic to check if 1 and only 1 PK exists. If only 1 we stop 
     if len(results) != 1 :
         st.error('Only tables with 1 PK column are supported: Your Table has less than 1 or more than 1 PK column')
@@ -52,13 +107,10 @@ if table_name:
         for rec in results :
             PK_COL = (rec[4])
 
-        #get the output from the selected table from a SELECT statement
-        select_stmt = "SELECT * FROM  " +  table_name + " ORDER BY " + PK_COL
-        cs.execute(select_stmt)
-        #export results to DF 
-        df = cs.fetch_pandas_all()
+        #get table to edit into dataframe
+        df = get_table_to_edit(table_name,PK_COL)
 
-        #makee use of the new data frame editor as of 1.19 to allow edits to DF objects. 
+        #make use of the new data frame editor as of 1.19 to allow edits to DF objects. 
         # num rows dynamic allows for INSERTS. if you would not like inserts remove this option
         # edited rsults get stored in the session_state of data_editor json object
         edited_df = st.experimental_data_editor(df, key="data_editor", use_container_width=True, num_rows="dynamic")
@@ -76,26 +128,7 @@ if table_name:
         # this allows users to make many edits to the DF whily only submitting one merge request once complete
         submit =st.button("Submit Changes")
 
-        # COLUMN LISTS 
-        # We need to get a list of the columns for the selected table for various puroses 
-        # 1. we will use a JSON object later and we need the column nanes and datatypes to cast properly 
-        # 2. for the merge we need  list of columns to update. note we ignore the PK col as we dont want this to get updated
-        # 3. For the merge we also need a list of columns and values to insert  
-        # Note: I chose to to this operation before the submit to have one less call to the DB when merging 
-        col_list_sql = "SELECT LISTAGG('VALUE:' || COLUMN_NAME ||'::'||DATA_TYPE || ' AS ' || COLUMN_NAME , ',' )               \
-            WITHIN GROUP ( ORDER BY  ORDINAL_POSITION) || ', VALUE:DEL::VARCHAR AS DEL'  COL_SELECT_FOR_JSON,                   \
-            LISTAGG( CASE WHEN COLUMN_NAME = '" + PK_COL + "' THEN NULL ELSE  ' tgt.' || COLUMN_NAME || ' =  src.' || COLUMN_NAME END , ', ') \
-        WITHIN GROUP ( ORDER BY  ORDINAL_POSITION)                                                                              \
-        COL_LIST_FOR_MERGE_UPDATE,                                                                                              \
-            '(' || LISTAGG(  COLUMN_NAME, ',')   WITHIN GROUP ( ORDER BY  ORDINAL_POSITION) || ')                               \
-                ' ||'VALUES (' ||  LISTAGG(  'src.' || COLUMN_NAME, ', ') WITHIN GROUP ( ORDER BY  ORDINAL_POSITION) || ')'     \
-        COL_LIST_FOR_MERGE_INSERT                                                                                               \
-        FROM INFORMATION_SCHEMA.COLUMNS                                                                                         \
-        WHERE TABLE_NAME = '" + table_name + "';"
-
-        #get one row row back with the 3 column lists 
-        ##store each column list into its own  variable to be used later 
-        COL_SELECT_FOR_JSON, COL_LIST_FOR_MERGE_UPDATE, COL_LIST_FOR_MERGE_INSERT = cs.execute(col_list_sql).fetchone()
+        COL_SELECT_FOR_JSON, COL_LIST_FOR_MERGE_UPDATE, COL_LIST_FOR_MERGE_INSERT = get_col_list_sql(table_name)
 
 
         #### DEBUGGING ##################
