@@ -1,34 +1,15 @@
 
 ##import python libraries  
-from dataclasses import replace
 import snowflake.connector
-from snowflake.connector.cursor import ResultMetadata
 import streamlit as st
-import sys
-from datetime import datetime
-import base64
-import urllib.request
-import pandas as pd
 import string
 
-#from pandasgui import show
-#from pandasgui.datasets import titanic
-#gui = show(titanic)
 
 st.set_page_config(page_title="Data Generator", page_icon="🔡", layout="wide") 
 
 
 st.header('Let\'s create a sample table with a primary key 🔡')
 
-##using caching to speed up the refresh of going back to get the list of values for each selection. There could be an issue with Presigned URLs timing out. 
-#If you see 401 errors disable the cache
-
-#st.write(string.sf_database)
-#st.write(string.sf_schema)
-#st.write(string.sf_role)
-
-
-#@st.cache(persist=False)
 def get_data():
 
     ##snowflake connection info. Its not good practice to include passwords in your code. This is here for demo purposes
@@ -45,11 +26,14 @@ def get_data():
     #open a snowflake cursor
     cs = ctx.cursor()
 
+    #formatting to contain the text box to only one column, so it doesnt span the entire width
     col1, col2 = st.columns(2)
 
+    #formatting to contain the text box to only one column, so it doesnt span the entire width
     with col1:
         st.subheader("What would you like to name your table?")
         table_nanme = st.text_input('Table Name')
+
         if table_nanme:
             st.subheader("You entered: ", table_nanme)
     

@@ -95,12 +95,16 @@ table_list_df = get_table_list(string.sf_database, string.sf_schema)
 #display the select box with values from table dataframe
 st.write("Select the table you'd like to edit. Only valid tables with ONE primary key defined are shown.")
 table_name = st.selectbox('Table Name',table_list_df)
+
+
 if table_name:
     st.write("You selected: " +  table_name)
     results = get_primary_keys(table_name)
     #error handling logic to check if 1 and only 1 PK exists. If only 1 we stop 
     if len(results) != 1 :
-        st.error('Only tables with 1 PK column are supported: Your Table has less than 1 or more than 1 PK column')
+        #formatting to contain the error to only one column, so it doesnt span the entire width
+        with col1:
+            st.error('Only tables with 1 PK column are supported: Your Table has less than 1 or more than 1 PK column')
     #otherwise we continue to process the table with a single PK
     else: 
         #get the PK name and store into a variable for later use    
@@ -110,15 +114,17 @@ if table_name:
         #get table to edit into dataframe
         df = get_table_to_edit(table_name,PK_COL)
 
+
         #make use of the new data frame editor as of 1.19 to allow edits to DF objects. 
+
         # num rows dynamic allows for INSERTS. if you would not like inserts remove this option
         # edited rsults get stored in the session_state of data_editor json object
         edited_df = st.experimental_data_editor(df, key="data_editor", use_container_width=True, num_rows="dynamic")
         
         ######## DEBUGGING ###########
         #  remove the next two lines to see output of changed DF ###### 
-        st.write("Here's the session state:")
-        st.write(st.session_state["data_editor"])
+        # st.write("Here's the session state:")
+        # st.write(st.session_state["data_editor"])
         ###### END DEBUGGING ######
 
         #save the session state into a variable
@@ -169,9 +175,9 @@ if table_name:
                     edit_df= edit_df.rename(columns={"index": "ROW"})
                     #convert row column to int, needed for merge operation
                     edit_df['ROW']=edit_df['ROW'].astype(int)
-                    cols_to_merge= df.columns.difference(edit_df.columns)
+                    cols_to_merge= edited_df.columns.difference(edit_df.columns)
                     #merge/join with orginal dataframe to get the column values that were changes 
-                    edit_df = pd.merge(edit_df, df[cols_to_merge], left_on='ROW', right_index=True)
+                    edit_df = pd.merge(edit_df, edited_df[cols_to_merge], left_on='ROW', right_index=True)
                     #remove the unneeded colunm
                     edit_df.drop(columns=['ROW'], inplace=True)
                     #add a column denoting this is not a delete operation 
@@ -217,7 +223,7 @@ if table_name:
                     del_df = pd.DataFrame.from_dict(json_raw['deleted_rows'])
                     del_df.columns = ['VAL']
                     #st.write(df_new)
-                    delete_df = pd.merge(del_df, df, left_on='VAL', right_index=True)
+                    delete_df = pd.merge(del_df, edited_df, left_on='VAL', right_index=True)
             
                     delete_df.drop(columns=['VAL'], inplace=True)
                     delete_df['DEL'] = 'Y'
@@ -252,7 +258,7 @@ if table_name:
                 ##create a view to wrap around the JSON data with the same column names as our source table.
                 # note: this is a temporary view and is destroyed after the session. if you'd like to view thw 
                 #       View DDL you can remove the temporary keyword 
-                SRC_VIEW_SQL = "CREATE OR REPLACE  VIEW STREAMLIT_MERGE_VW AS (            \
+                SRC_VIEW_SQL = "CREATE OR REPLACE TEMPORARY VIEW STREAMLIT_MERGE_VW AS (            \
                     SELECT " +   COL_SELECT_FOR_JSON + " FROM                                       \
                     ( SELECT PARSE_JSON(' " + json_data + "') as JSON_DATA),                        \
                     LATERAL FLATTEN (input => JSON_DATA));"               
@@ -268,6 +274,8 @@ if table_name:
                 
                 cs.execute(MERGE_SQL)
 
-                st.success ('Edited data successfully written back to Snowflake!') 
+                st.success ('Edited data successfully written back to Snowflake! The page will now refresh.') 
+                st.experimental_rerun()
+                
 
 
