@@ -94,7 +94,11 @@ table_list_df = get_table_list(string.sf_database, string.sf_schema)
 #TODO: parameters for table_updater(db,schema,table,sql_query,primary_key)
 #display the select box with values from table dataframe
 st.write("Select the table you'd like to edit. Only valid tables with ONE primary key defined are shown.")
-table_name = st.selectbox('Table Name',table_list_df)
+
+#formatting to contain the select box to only one column, so it doesnt span the entire width
+col1, col2 = st.columns(2)
+with col1:
+    table_name = st.selectbox('Table Name',table_list_df)
 
 
 if table_name:
@@ -274,8 +278,5 @@ if table_name:
                 
                 cs.execute(MERGE_SQL)
 
-                st.success ('Edited data successfully written back to Snowflake! The page will now refresh.') 
-                
-                # uncommet if you'd like to return the page after processing 
-                # st.experimental_rerun()
+                st.success ('Edited data successfully written back to Snowflake!') 
                 
