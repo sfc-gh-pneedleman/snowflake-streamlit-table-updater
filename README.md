@@ -10,8 +10,8 @@ More info on the streamlit Dataframe editor here:
  
  ![](https://blog.streamlit.io/content/images/2023/02/data-editor-add-delete-10.44.28-AM-1.gif)
 
-Current Limitations:
- -Only tables with 1 Primary Key defined are supported 
- -Primary keys can be edited which triggers a new row to be inserted (no current way to disable editing PKs)
- -Dates and Timestamps are not supported by the dataframe editor 
- -no way to sort the dataframe if using "dynamic mode" (inserts). You can search though. 
+### Current Limitations:
+ - Only tables with 1 Primary Key defined are supported 
+ - Primary keys can be edited which triggers a new row to be inserted (no current way to disable editing PKs)
+ - Dates and Timestamps are not supported by the dataframe editor 
+ - no way to sort the dataframe if using "dynamic mode" (inserts). You can search though. 
