@@ -28,7 +28,7 @@ sf_wh_in = st.sidebar.text_input("Warehouse",  value="COMPUTE_WH")
 sf_db_in = st.sidebar.text_input("Database", value="SNOW_DB")
 sf_schema_in = st.sidebar.text_input("Schema",  value="SNOW_SCHEMA")
 # Every form must have a submit button.
-submitted = st.sidebar.button("Conneect")
+submitted = st.sidebar.button("Connect")
 if submitted:
     #########################################################
     ###### SET SNOWFLAKE CONN PARAMS ONCE  ##################
