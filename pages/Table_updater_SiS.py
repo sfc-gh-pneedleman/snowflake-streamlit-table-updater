@@ -3,11 +3,7 @@ import pandas as pd
 from snowflake.snowpark.context import get_active_session
 import json
 
-
 st.set_page_config(page_title="Table Editor", page_icon="📋", layout="wide")
-
-sf_database=""
-sf_schema=""
 
 @st.cache_resource
 def init_connection():
