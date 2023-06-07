@@ -12,7 +12,8 @@ st.write("This is a sample app to demo the ability to use Snowflake and Streamli
 st.write("Please authenticate to the left to get started")   
 st.write("")
 
-st.write("Please use version 1.19 of streamlit to use this new experimental feature")
+st.warning("As of Streamlit v1.23 the experimental data editor changed to data editor. The output of this object has signifiganrly changed from previous version. This codebase has been updated to support 1.23+")
+st.write("Please use version 1.23 of streamlit to use this new experimental feature")
 st.write("docs: https://docs.streamlit.io/library/api-reference/widgets/st.experimental_data_editor and https://docs.streamlit.io/library/advanced-features/dataframes#access-edited-data")
 
 

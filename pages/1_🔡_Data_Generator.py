@@ -37,10 +37,19 @@ def get_data():
         if table_nanme:
             st.subheader("You entered: ", table_nanme)
     
+            #create an empty table with PK and IDENTITY column
             create_tbl_stmt =   "CREATE OR REPLACE TABLE  " +  table_nanme + \
-            " AS                                  \
-            select                              \
-            SEQ4()+1 ID,                        \
+           "        (ID NUMBER  IDENTITY,                                    \
+                    PRODUCT VARCHAR,                                         \
+                    SALE_PRICE NUMBER,                                       \
+                    SALE_DATE DATE,                                          \
+                    PRIMARY KEY (ID));"      
+            
+            cs.execute(create_tbl_stmt)
+
+            insert_stmt =   "INSERT INTO " +  table_nanme + \
+            "(PRODUCT, SALE_PRICE, SALE_DATE)    \
+            (select                              \
             case uniform(1, 6, random() )       \
                 when 1 then 'Eggs'              \
                 when 2 then 'Milk'              \
@@ -51,12 +60,9 @@ def get_data():
                 end as product,                 \
             ROUND(uniform(1::float, 12::float, random()), 2) SALE_PRICE,        \
             last_day(dateadd('month', row_number() over (order by 1), '2021-12-01')::date) SALE_date   \
-            FROM TABLE(GENERATOR(rowcount => 20))"
+            FROM TABLE(GENERATOR(rowcount => 25)))"
 
-            cs.execute(create_tbl_stmt)
-
-            alter_pk_stmt = "ALTER TABLE "+  table_nanme + "  ADD PRIMARY KEY (ID)"
-            cs.execute(alter_pk_stmt)
+            cs.execute(insert_stmt)
 
 
             st.success("Table  " + table_nanme +  " successfully created in " + string.sf_database + "." + string.sf_schema + 
