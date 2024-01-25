@@ -3,6 +3,11 @@ import pandas as pd
 from snowflake.snowpark.context import get_active_session
 import json
 
+###############
+##note:  
+##this code will work in v1.26 of SiS. It makes use of the st.data_editor (Non Experimental; this is changed from experimental_data_editor in v1.23)
+#########
+
 st.set_page_config(page_title="Table Editor", page_icon="📋", layout="wide")
 
 
