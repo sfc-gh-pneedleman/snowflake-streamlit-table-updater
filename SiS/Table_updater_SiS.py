@@ -216,7 +216,8 @@ if table_name:
                         #for col in add_df.columns:
                         #    add_df.rename(columns={str(col): df.columns[int(col)-1]}, inplace=True)
                         add_df['DEL'] = 'N'
-                        add_df_all = add_df_all.append(add_df, ignore_index=True )
+                        #add_df_all = add_df_all.append(add_df, ignore_index=True )
+                        add_df_all = pd.concat([add_df_all, add_df], ignore_index=True)
                         
                     #### DEBUGGING ##############
                     #st.write('insert dataframe:')
