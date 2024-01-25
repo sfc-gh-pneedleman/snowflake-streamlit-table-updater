@@ -2,10 +2,6 @@ import streamlit as st
 import pandas as pd
 from snowflake.snowpark.context import get_active_session
 import json
-###############
-##note:  
-##this code will work in v1.26+ of SiS. It makes use of the st.data_editor (non Experimental)
-#########
 
 st.set_page_config(page_title="Table Editor", page_icon="📋", layout="wide")
 
@@ -148,7 +144,20 @@ if table_name:
 
         # create a submit button to hold the state until ready to process back to snowflake
         # this allows users to make many edits to the DF whily only submitting one merge request once complete
-        submit =st.button("Submit Changes")
+        columns = st.columns((1,1,10,1))
+
+        with columns[0]:
+            submit = st.button("Submit Changes", use_container_width=True)
+        with columns[1]:
+            refresh = st.button("Refresh Data", use_container_width=True)
+        # No usage of 3rd position on the columns.
+
+        if refresh: 
+            get_table_to_edit(table_name, PK_COL)
+            st.success('Data Table Refreshed')
+            #st.toast(':green[Data Refreshed]')
+
+  
 
         #get list of SQL to use  for SELECT and MERGE UPDATE/INSERT
         col_list_df = get_col_list_sql(table_name)
@@ -216,7 +225,6 @@ if table_name:
                         #for col in add_df.columns:
                         #    add_df.rename(columns={str(col): df.columns[int(col)-1]}, inplace=True)
                         add_df['DEL'] = 'N'
-                        #add_df_all = add_df_all.append(add_df, ignore_index=True )
                         add_df_all = pd.concat([add_df_all, add_df], ignore_index=True)
                         
                     #### DEBUGGING ##############
@@ -287,6 +295,7 @@ if table_name:
                 session.sql(MERGE_SQL).collect()
 
                 st.success ('Edited data successfully written back to Snowflake!') 
+                #st.toast(':green[Edited data successfully written back to Snowflake!]')
                 #cleanup temp view
                 session.sql("DROP VIEW STREAMLIT_MERGE_VW").collect()
                 
