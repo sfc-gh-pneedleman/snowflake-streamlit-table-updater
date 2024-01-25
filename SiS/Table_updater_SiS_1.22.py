@@ -4,14 +4,9 @@ from snowflake.snowpark.context import get_active_session
 import json
 ###############
 ##note:  
-##this code will work in v1.26+ of SiS. It makes use of the st.data_editor (non Experimental)
+##this code will ONLY work in v1.22 of SiS. It makes use of the st.experimental_data_editor (this is changed to data_editor in v1.26)
 #########
-
 st.set_page_config(page_title="Table Editor", page_icon="📋", layout="wide")
-
-
-sf_database=""
-sf_schema=""
 
 @st.cache_resource
 def init_connection():
@@ -21,7 +16,7 @@ def init_connection():
         return session
         
     except Exception as e:
-        st.sidebar.error("Connection Failed. Please try again! The pages will not work unless a succesfull connection is made" + '\n' + '\n' + "error: " + str(e))
+        st.error("Connection Failed. Please try again! The pages will not work unless a succesfull connection is made" + '\n' + '\n' + "error: " + str(e))
 
 @st.cache_data
 def get_table_list(database,schema):
@@ -34,7 +29,7 @@ def get_table_list(database,schema):
     except Exception as e:
         st.sidebar.error("Sorry, An error occcured in get_table_list(): " + str(e))
 
-#build out a list of of columns needed for the JSON construction and merge statement
+
 @st.cache_data
 def get_col_list_sql(tablel_name):
     try:
@@ -43,17 +38,18 @@ def get_col_list_sql(tablel_name):
                 LISTAGG( CASE WHEN COLUMN_NAME = '" + PK_COL + "' THEN NULL ELSE  ' tgt.' || COLUMN_NAME || ' =  src.' || COLUMN_NAME END , ', ') \
             WITHIN GROUP ( ORDER BY  ORDINAL_POSITION)                                                                              \
             COL_LIST_FOR_MERGE_UPDATE,                                                                                              \
-                '(' || LISTAGG(  CASE WHEN COLUMN_NAME = '" + PK_COL + "' THEN NULL ELSE COLUMN_NAME END , ',')   WITHIN GROUP ( ORDER BY  ORDINAL_POSITION) || ')                               \
-                    ' ||'VALUES (' ||  LISTAGG( CASE WHEN COLUMN_NAME = '" + PK_COL + "' THEN NULL ELSE 'src.' || COLUMN_NAME END , ', ') WITHIN GROUP ( ORDER BY  ORDINAL_POSITION) || ')'     \
+                '(' || LISTAGG(  COLUMN_NAME, ',')   WITHIN GROUP ( ORDER BY  ORDINAL_POSITION) || ')                               \
+                    ' ||'VALUES (' ||  LISTAGG(  'src.' || COLUMN_NAME, ', ') WITHIN GROUP ( ORDER BY  ORDINAL_POSITION) || ')'     \
             COL_LIST_FOR_MERGE_INSERT                                                                                               \
             FROM INFORMATION_SCHEMA.COLUMNS                                                                                         \
             WHERE TABLE_NAME = '" + table_name + "';"
 
             #get one row row back with the 3 column lists 
-            ##store each column list into its own  variable to be used later 
-        col_list_df = session.sql(col_list_sql).to_pandas()
+            ##store each column list into its own  variable to be used later
+        table_list_df = session.sql(col_list_sql).to_pandas()
         
-        return col_list_df
+        return table_list_df
+
         
     except Exception as e:
         st.sidebar.error("Sorry, An error occcured in  get_col_list_sql(): " + str(e))
@@ -72,7 +68,6 @@ def get_primary_keys (table_name):
     except Exception as e:
         st.sidebar.error("Sorry, An error occcured in get_primary_keys(): " + str(e))
 
-#@st.cache_data
 def get_table_to_edit(table_name,PK_COL):
     try:
         select_stmt = "SELECT * FROM  " +  table_name + " ORDER BY " + PK_COL
@@ -86,6 +81,8 @@ def get_table_to_edit(table_name,PK_COL):
 st.header("Let\'s get editing 📋")
 
 ##snowflake connection info. This will get read in from the values submitted on the homepage
+
+
 try:
     session = init_connection()
     #open the connection
@@ -98,6 +95,7 @@ sf_schema = session.get_current_schema()
 
 table_list_df = get_table_list(sf_database, sf_schema)
 
+    
 #TODO: parameters for table_updater(db,schema,table,sql_query,primary_key)
 #display the select box with values from table dataframe
 st.write("Select the table you'd like to edit. Only valid tables with ONE primary key defined are shown.")
@@ -106,7 +104,6 @@ st.write("Select the table you'd like to edit. Only valid tables with ONE primar
 col1, col2 = st.columns(2)
 with col1:
     table_name = st.selectbox('Table Name',table_list_df)
-
 
 if table_name:
     st.write("You selected: " +  table_name)
@@ -130,17 +127,12 @@ if table_name:
 
         # num rows dynamic allows for INSERTS. if you would not like inserts remove this option
         # edited rsults get stored in the session_state of data_editor json object
-        # mark the PK as disabled so it cannot be updated or modified 
-        edited_df = st.data_editor(df, key="data_editor", use_container_width=True, num_rows="dynamic",
-        disabled=[PK_COL],
-        hide_index=True,
-        )
-
+        edited_df = st.experimental_data_editor(df, key="data_editor", use_container_width=True, num_rows="dynamic")
         
         ######## DEBUGGING ###########
         #  remove the next two lines to see output of changed DF ###### 
-        #st.write("Here's the session state:")
-        #st.write(st.session_state["data_editor"])
+        # st.write("Here's the session state:")
+        # st.write(st.session_state["data_editor"])
         ###### END DEBUGGING ######
 
         #save the session state into a variable
@@ -150,11 +142,11 @@ if table_name:
         # this allows users to make many edits to the DF whily only submitting one merge request once complete
         submit =st.button("Submit Changes")
 
-        #get list of SQL to use  for SELECT and MERGE UPDATE/INSERT
         col_list_df = get_col_list_sql(table_name)
-        COL_SELECT_FOR_JSON, COL_LIST_FOR_MERGE_UPDATE, COL_LIST_FOR_MERGE_INSERT = col_list_df['COL_SELECT_FOR_JSON'].apply(str)[0], col_list_df['COL_LIST_FOR_MERGE_UPDATE'].apply(str)[0], col_list_df['COL_LIST_FOR_MERGE_INSERT'].apply(str)[0],
-       
-        
+        COL_SELECT_FOR_JSON = col_list_df.iloc[0]['COL_SELECT_FOR_JSON']
+        COL_LIST_FOR_MERGE_UPDATE = col_list_df.iloc[0]['COL_LIST_FOR_MERGE_UPDATE']
+        COL_LIST_FOR_MERGE_INSERT = col_list_df.iloc[0]['COL_LIST_FOR_MERGE_INSERT']
+
         #### DEBUGGING ##################
         #st.write(COL_SELECT_FOR_JSON)
         #st.write(COL_LIST_FOR_MERGE_UPDATE)
@@ -171,61 +163,69 @@ if table_name:
             for key in json_raw:
                 value = json_raw[key]
                 
+            
                 #handle edit and check is the edit has values 
-                if key == "edited_rows" and  len(json_raw['edited_rows']) > 0:
-                    edit_df_all= pd.DataFrame()
-                    for key, value  in json_raw['edited_rows'].items():
+                if key == "edited_cells" and  len(json_raw['edited_cells']) > 0:
+
                     #create a Dataframe from the JSON object 
-                        #key_value = json_raw['edited_rows'][key]
-                        edit_df = pd.DataFrame.from_dict(value, orient='index', columns=['VAL'])
-                        #pivot the df frmo Rows to Coumns 
-                        edit_df= edit_df.T
-                        # create a new column with the index of the column that was modified 
-                        edit_df['ROW'] = key
-                        #add a column denoting this is not a delete operation 
-                        edit_df['DEL'] = 'N'
-                        
-                        # we need to convert the ROW key from the df index into the PK of the table
-                        # do a dif between the original DF and the edit df to bring over any missing columns    
-                        cols_to_merge= df.columns.difference(edit_df.columns)
-                        # merge the delta columns (e.g, ID and any others on the index)
-                        edit_df = pd.merge(edit_df, df[cols_to_merge], left_on='ROW', right_index=True)
-                        #edit_df.reset_index(inplace=True)
+                    edit_df = pd.DataFrame.from_dict(json_raw['edited_cells'], orient='index', columns=['VAL'])
 
-                        #append the edit DF to a single merged dataframe to use at end 
-                        #edit_df_all = edit_df_all.concat(edit_df, ignore_index = True)
-                        edit_df_all = pd.concat([edit_df_all, edit_df], ignore_index=True)
-
-                       
-                    #merged_df = merged_df.append(edit_df_all)
-                    merged_df = pd.concat([merged_df, edit_df_all], ignore_index=True)
+                    edit_df.reset_index(inplace=True)
+                    #the JSON gives us a : delmimited list. we will bring into two columns for row num and column number 
+                    edit_df= edit_df.rename(columns={"index": "KEY"})
+                    edit_df[['ROW','COL']] = edit_df.KEY.str.split(":",expand=True)
+                    #we then need to pivit the rows and coumns to get the dataframe to look like structured data 
+                    edit_df=edit_df.pivot(index='ROW', columns='COL', values='VAL')
+                    #rename the columns from col Ids to column names from our orginal DF 
+                    for col in edit_df.columns:
+                        edit_df.rename(columns={str(col): df.columns[int(col)-1]}, inplace=True)
+                    #remove multi-level index so we can perform merge 
+                    edit_df.rename_axis(None, inplace=True)
+                    edit_df.reset_index(inplace=True)
+                    edit_df= edit_df.rename(columns={"index": "ROW"})
+                    #convert row column to int, needed for merge operation
+                    edit_df['ROW']=edit_df['ROW'].astype(int)
+                    cols_to_merge= df.columns.difference(edit_df.columns)
+                    #merge/join with orginal dataframe to get the column values that were changes 
+                    edit_df = pd.merge(edit_df, df[cols_to_merge], left_on='ROW', right_index=True)
+                    #remove the unneeded colunm
+                    edit_df.drop(columns=['ROW'], inplace=True)
+                    #add a column denoting this is not a delete operation 
+                    edit_df['DEL'] = 'N'
+                    
+                    #append the edit DF to a single merged dataframe to use at end 
+                    merged_df = merged_df.append(edit_df)
         
                     #### DEBUGGING ######
-                    #st.write('edit dataframe:')
-                    #st.dataframe(edit_df_all)
+                    # st.write('edit dataframe:')
+                    # st.dataframe(edit_df)
                     #######################
 
                 ############ INSERTS ###############
                 # handle added row logic and check if there are values in the added rows key
                 if key == "added_rows" and len(json_raw['added_rows']) > 0 :
-                    add_df_all= pd.DataFrame()
+                    add_df_all= pd.DataFrame
                     for key in json_raw['added_rows']:
+                        #st.write(key)
                         add_df = pd.DataFrame.from_dict(key, orient='index', columns=['VAL'])
                         add_df= add_df.T
+
+                        #st.write(add_df)
                         #rename columns so we get the column names from the orig DF based on the values  that chaged from those columns
-                        #for col in add_df.columns:
-                        #    add_df.rename(columns={str(col): df.columns[int(col)-1]}, inplace=True)
+                        for col in add_df.columns:
+                            add_df.rename(columns={str(col): df.columns[int(col)-1]}, inplace=True)
+        
                         add_df['DEL'] = 'N'
-                        add_df_all = add_df_all.append(add_df, ignore_index=True )
+                        add_df_all = pd.concat([add_df], ignore_index=True )
                         
                     #### DEBUGGING ##############
-                    #st.write('insert dataframe:')
-                    #st.write(add_df_all)    
+                    # st.write('insert dataframe:')
+                    # st.write(add_df_all)    
                     ##### END DEBUGGING          
                     
                     # append the insert DF to a single merged dataframe to use at end             
-                    #merged_df = merged_df.append(add_df_all)
-                    merged_df = pd.concat([merged_df, add_df_all], ignore_index=True)
+                    merged_df = merged_df.append(add_df_all)
+
                 ############## DELETES ###################   
                 # #handle delete logic and check if there are values in the deleted rows key
                 if key == "deleted_rows" and len(json_raw['deleted_rows']) > 0:
@@ -244,19 +244,18 @@ if table_name:
                     ##### END DEBUGGING ##################
         
                     # add the delete DF into the merged DF
-                    #merged_df = merged_df.append(delete_df)
-                    merged_df = pd.concat([merged_df, delete_df], ignore_index=True)
+                    merged_df = merged_df.append(delete_df)
                     
             #now we have all the DFs so we can progess them to JSON and Snowflake
             #merged_df = pd.concat([operation_list], ignore_index=True )
             
             ######## DEBUGGING   ###########
-            #st.write('merged dataframe:')
-            #st.write(merged_df)
+            # st.write('merged dataframe:')
+            # st.write(merged_df)
             ####### END DEBUGGING #####$#
 
             #error handling to make sure some data was changed before trying to process
-            if len(json_raw['deleted_rows']) + len(json_raw['edited_rows']) +  len(json_raw['added_rows']) == 0:
+            if len(json_raw['deleted_rows']) + len(json_raw['edited_cells']) +  len(json_raw['added_rows']) == 0:
                 st.error('No changed, deleted or added data was detected. Please make edits before submitting.')
             else: #process the modified data
                 
@@ -270,8 +269,8 @@ if table_name:
                 # note: this is a temporary view and is destroyed after the session. if you'd like to view thw 
                 #       View DDL you can remove the temporary keyword 
                 SRC_VIEW_SQL = "CREATE OR REPLACE VIEW STREAMLIT_MERGE_VW AS (            \
-                    SELECT " +   COL_SELECT_FOR_JSON + " FROM                                       \
-                    ( SELECT PARSE_JSON(' " + json_data + "') as JSON_DATA),                        \
+                    SELECT " +   COL_SELECT_FOR_JSON + " FROM                             \
+                    ( SELECT PARSE_JSON(' " + json_data + "') as JSON_DATA),              \
                     LATERAL FLATTEN (input => JSON_DATA));"               
                 
                 session.sql(SRC_VIEW_SQL).collect()
@@ -284,8 +283,8 @@ if table_name:
                         WHEN NOT MATCHED THEN INSERT " + COL_LIST_FOR_MERGE_INSERT + ";"
                 
                 session.sql(MERGE_SQL).collect()
-
+                #drop the view
+                session.sql("DROP VIEW STREAMLIT_MERGE_VW").collect() 
+                
                 st.success ('Edited data successfully written back to Snowflake!') 
-                #cleanup temp view
-                session.sql("DROP VIEW STREAMLIT_MERGE_VW").collect()
                 
