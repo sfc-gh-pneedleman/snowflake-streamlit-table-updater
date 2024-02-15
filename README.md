@@ -1,8 +1,10 @@
 # snowflake-streamlit-table-updater
 CRUD on a Snowflake table via Streamlit
 
-As of v1.19, Streamlit enables a Dataframe editor. This is an awesome feature but only natively works with Python. This streamlit app add integration with Snowflake , and could be modified for other DBs as well. 
+Update: JAN-2024:
+Streamlit in Snowflake (SiS) has been upgraded to v1.26 in Public Preview. Due to this. the experimental Dataframe editor is no longer experiemental. There are two versions of the SiS code withih the directory; one for pre v1.26 and another for 1.26+. 
 
+As of v1.19, Streamlit enables a Dataframe editor. This is an awesome feature but only natively works with Python. This streamlit app add integration with Snowflake , and could be modified for other DBs as well. 
 The code for the experimental data frame was signigiantly changed as part of v1.23. This codebase *only supports 1.23+* 
 
 More info on the streamlit Dataframe editor here: 
